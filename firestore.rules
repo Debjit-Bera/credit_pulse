@@ -1,0 +1,448 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isStringBounded(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringArray(arr, maxLen) {
+      return arr is list && arr.size() <= maxLen && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 200));
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserAccount(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.uid == userId
+        && isValidId(data.uid)
+        && isStringBounded(data.displayName, 1, 100)
+        && (!('photoURL' in data) || isStringBounded(data.photoURL, 0, 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFinancialProfile(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'fullName', 'email', 'monthlyIncome', 'monthlyExpenses',
+          'existingEmis', 'totalCreditLimit', 'creditCardBalance',
+          'creditAgeMonths', 'missedPayments12m', 'hardInquiries6m',
+          'employmentType', 'employmentTenureMonths', 'requestedLoanAmount',
+          'requestedTenureMonths', 'loanPurpose', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'fullName', 'email', 'monthlyIncome', 'monthlyExpenses',
+          'existingEmis', 'totalCreditLimit', 'creditCardBalance',
+          'creditAgeMonths', 'missedPayments12m', 'hardInquiries6m',
+          'employmentType', 'employmentTenureMonths', 'requestedLoanAmount',
+          'requestedTenureMonths', 'loanPurpose', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringBounded(data.fullName, 1, 120)
+        && isStringBounded(data.email, 3, 200)
+        && data.monthlyIncome is number && data.monthlyIncome >= 0 && data.monthlyIncome <= 100000000
+        && data.monthlyExpenses is number && data.monthlyExpenses >= 0 && data.monthlyExpenses <= 100000000
+        && data.existingEmis is number && data.existingEmis >= 0 && data.existingEmis <= 100000000
+        && data.totalCreditLimit is number && data.totalCreditLimit >= 0 && data.totalCreditLimit <= 100000000
+        && data.creditCardBalance is number && data.creditCardBalance >= 0 && data.creditCardBalance <= 100000000
+        && data.creditAgeMonths is int && data.creditAgeMonths >= 0 && data.creditAgeMonths <= 1200
+        && data.missedPayments12m is int && data.missedPayments12m >= 0 && data.missedPayments12m <= 120
+        && data.hardInquiries6m is int && data.hardInquiries6m >= 0 && data.hardInquiries6m <= 100
+        && data.employmentType in ['salaried', 'self_employed', 'freelancer', 'business_owner', 'student']
+        && data.employmentTenureMonths is int && data.employmentTenureMonths >= 0 && data.employmentTenureMonths <= 900
+        && data.requestedLoanAmount is number && data.requestedLoanAmount >= 0 && data.requestedLoanAmount <= 1000000000
+        && data.requestedTenureMonths is int && data.requestedTenureMonths >= 1 && data.requestedTenureMonths <= 480
+        && isStringBounded(data.loanPurpose, 1, 80)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCreditAssessment(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'score', 'band', 'utilizationRatio', 'dtiRatio',
+          'paymentHistoryScore', 'creditMixScore', 'summary', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'score', 'band', 'utilizationRatio', 'dtiRatio',
+          'paymentHistoryScore', 'creditMixScore', 'summary', 'createdAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.score is int && data.score >= 300 && data.score <= 900
+        && data.band in ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']
+        && data.utilizationRatio is number && data.utilizationRatio >= 0 && data.utilizationRatio <= 1000
+        && data.dtiRatio is number && data.dtiRatio >= 0 && data.dtiRatio <= 1000
+        && data.paymentHistoryScore is int && data.paymentHistoryScore >= 0 && data.paymentHistoryScore <= 100
+        && data.creditMixScore is int && data.creditMixScore >= 0 && data.creditMixScore <= 100
+        && isStringBounded(data.summary, 1, 1000)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidLoanRejectionAnalysis(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'loanType', 'requestedAmount', 'requestedTenureMonths',
+          'approvalOdds', 'riskLevel', 'passedChecksCount', 'scoreUsed',
+          'dtiPercent', 'utilizationPercent', 'failedCheckKeys', 'recommendations', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'loanType', 'requestedAmount', 'requestedTenureMonths',
+          'approvalOdds', 'riskLevel', 'passedChecksCount', 'scoreUsed',
+          'dtiPercent', 'utilizationPercent', 'failedCheckKeys', 'recommendations', 'createdAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringBounded(data.loanType, 1, 60)
+        && data.requestedAmount is number && data.requestedAmount >= 0 && data.requestedAmount <= 1000000000
+        && data.requestedTenureMonths is int && data.requestedTenureMonths >= 1 && data.requestedTenureMonths <= 480
+        && data.approvalOdds is int && data.approvalOdds >= 0 && data.approvalOdds <= 100
+        && data.riskLevel in ['Low Risk', 'Moderate Risk', 'High Risk']
+        && data.passedChecksCount is int && data.passedChecksCount >= 0 && data.passedChecksCount <= 7
+        && data.scoreUsed is int && data.scoreUsed >= 300 && data.scoreUsed <= 900
+        && data.dtiPercent is number && data.dtiPercent >= 0 && data.dtiPercent <= 1000
+        && data.utilizationPercent is number && data.utilizationPercent >= 0 && data.utilizationPercent <= 1000
+        && isBoundedStringArray(data.failedCheckKeys, 7)
+        && isBoundedStringArray(data.recommendations, 10)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidImprovementPlan(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'title', 'baselineScore', 'targetScore', 'completedTaskIds',
+          'totalTasks', 'progressPercent', 'month1Focus', 'month2Focus',
+          'month3Focus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'title', 'baselineScore', 'targetScore', 'completedTaskIds',
+          'totalTasks', 'progressPercent', 'month1Focus', 'month2Focus',
+          'month3Focus', 'createdAt', 'updatedAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringBounded(data.title, 1, 120)
+        && data.baselineScore is int && data.baselineScore >= 300 && data.baselineScore <= 900
+        && data.targetScore is int && data.targetScore >= 300 && data.targetScore <= 900
+        && isBoundedStringArray(data.completedTaskIds, 18)
+        && data.totalTasks is int && data.totalTasks >= 1 && data.totalTasks <= 18
+        && data.progressPercent is int && data.progressPercent >= 0 && data.progressPercent <= 100
+        && isStringBounded(data.month1Focus, 1, 300)
+        && isStringBounded(data.month2Focus, 1, 300)
+        && isStringBounded(data.month3Focus, 1, 300)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLoanSuggestion(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'requestedAmount', 'tenureMonths', 'creditScoreUsed',
+          'recommendedCategory', 'estimatedApr', 'estimatedMonthlyEmi',
+          'totalRepayment', 'notes', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'requestedAmount', 'tenureMonths', 'creditScoreUsed',
+          'recommendedCategory', 'estimatedApr', 'estimatedMonthlyEmi',
+          'totalRepayment', 'notes', 'createdAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.requestedAmount is number && data.requestedAmount > 0 && data.requestedAmount <= 1000000000
+        && data.tenureMonths is int && data.tenureMonths >= 1 && data.tenureMonths <= 480
+        && data.creditScoreUsed is int && data.creditScoreUsed >= 300 && data.creditScoreUsed <= 900
+        && isStringBounded(data.recommendedCategory, 1, 100)
+        && data.estimatedApr is number && data.estimatedApr >= 0 && data.estimatedApr <= 100
+        && data.estimatedMonthlyEmi is number && data.estimatedMonthlyEmi >= 0 && data.estimatedMonthlyEmi <= 1000000000
+        && data.totalRepayment is number && data.totalRepayment >= 0 && data.totalRepayment <= 10000000000
+        && isStringBounded(data.notes, 1, 1000)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidEmiCalculation(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'label', 'principal', 'annualInterestRate', 'tenureMonths',
+          'monthlyEmi', 'totalInterest', 'totalPayable', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'label', 'principal', 'annualInterestRate', 'tenureMonths',
+          'monthlyEmi', 'totalInterest', 'totalPayable', 'createdAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringBounded(data.label, 1, 100)
+        && data.principal is number && data.principal > 0 && data.principal <= 1000000000
+        && data.annualInterestRate is number && data.annualInterestRate >= 0 && data.annualInterestRate <= 100
+        && data.tenureMonths is int && data.tenureMonths >= 1 && data.tenureMonths <= 480
+        && data.monthlyEmi is number && data.monthlyEmi >= 0 && data.monthlyEmi <= 1000000000
+        && data.totalInterest is number && data.totalInterest >= 0 && data.totalInterest <= 10000000000
+        && data.totalPayable is number && data.totalPayable >= 0 && data.totalPayable <= 10000000000
+        && data.createdAt is timestamp;
+    }
+
+    function isValidChatMessage(data, userId) {
+      return data.keys().hasAll(['userId', 'role', 'content', 'contextScore', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'role', 'content', 'contextScore', 'createdAt'])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.role in ['user', 'assistant']
+        && isStringBounded(data.content, 1, 8000)
+        && data.contextScore is int && data.contextScore >= 300 && data.contextScore <= 900
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUploadedDocument(data, userId) {
+      return data.keys().hasAll([
+          'userId', 'fileName', 'category', 'sizeBytes', 'contentType',
+          'storagePath', 'downloadUrl', 'storageBackend', 'chunkCount',
+          'uploadStatus', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'fileName', 'category', 'sizeBytes', 'contentType',
+          'storagePath', 'downloadUrl', 'storageBackend', 'chunkCount',
+          'uploadStatus', 'createdAt'
+        ])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && isStringBounded(data.fileName, 1, 180)
+        && data.category in ['Income Proof', 'Bank Statement', 'Credit Report', 'Loan Offer', 'Other']
+        && data.sizeBytes is int && data.sizeBytes > 0 && data.sizeBytes <= 10485760
+        && isStringBounded(data.contentType, 1, 100)
+        && isStringBounded(data.storagePath, 1, 300)
+        && isStringBounded(data.downloadUrl, 1, 1000)
+        && data.storageBackend in ['firebase-storage', 'firestore-vault']
+        && data.chunkCount is int && data.chunkCount >= 0 && data.chunkCount <= 32
+        && data.uploadStatus in ['uploading', 'ready']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidDocumentChunk(data, userId, docId) {
+      return data.keys().hasAll(['userId', 'documentId', 'chunkIndex', 'data', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'documentId', 'chunkIndex', 'data', 'createdAt'])
+        && data.userId == userId
+        && isValidId(data.userId)
+        && data.documentId == docId
+        && isValidId(data.documentId)
+        && data.chunkIndex is int && data.chunkIndex >= 0 && data.chunkIndex <= 31
+        && isStringBounded(data.data, 1, 560000)
+        && data.createdAt is timestamp;
+    }
+
+    // --- User Account Root ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserAccount(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isVerifiedOwner(userId)
+        && isValidUserAccount(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+      allow delete: if false;
+
+      // --- Private Financial Profile & PII ---
+      match /private/{profileId} {
+        allow get: if isValidId(userId) && isValidId(profileId) && profileId == 'financial_profile' && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(profileId)
+          && profileId == 'financial_profile'
+          && isVerifiedOwner(userId)
+          && isValidFinancialProfile(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(profileId)
+          && profileId == 'financial_profile'
+          && isVerifiedOwner(userId)
+          && isValidFinancialProfile(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'email', 'monthlyIncome', 'monthlyExpenses',
+            'existingEmis', 'totalCreditLimit', 'creditCardBalance',
+            'creditAgeMonths', 'missedPayments12m', 'hardInquiries6m',
+            'employmentType', 'employmentTenureMonths', 'requestedLoanAmount',
+            'requestedTenureMonths', 'loanPurpose', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(profileId) && profileId == 'financial_profile' && isVerifiedOwner(userId);
+      }
+
+      // --- Smart Credit Score Assessments ---
+      match /creditAssessments/{assessmentId} {
+        allow get: if isValidId(userId) && isValidId(assessmentId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(assessmentId)
+          && isVerifiedOwner(userId)
+          && isValidCreditAssessment(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(assessmentId) && isVerifiedOwner(userId);
+      }
+
+      // --- Loan Rejection Analyses (7 Checks) ---
+      match /loanAnalyses/{analysisId} {
+        allow get: if isValidId(userId) && isValidId(analysisId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(analysisId)
+          && isVerifiedOwner(userId)
+          && isValidLoanRejectionAnalysis(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(analysisId) && isVerifiedOwner(userId);
+      }
+
+      // --- 3-Month Credit Improvement Plans ---
+      match /improvementPlans/{planId} {
+        allow get: if isValidId(userId) && isValidId(planId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(planId)
+          && isVerifiedOwner(userId)
+          && isValidImprovementPlan(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(planId)
+          && isVerifiedOwner(userId)
+          && isValidImprovementPlan(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'completedTaskIds', 'progressPercent', 'targetScore', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(planId) && isVerifiedOwner(userId);
+      }
+
+      // --- Alternative Loan Suggestions ---
+      match /loanSuggestions/{suggestionId} {
+        allow get: if isValidId(userId) && isValidId(suggestionId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(suggestionId)
+          && isVerifiedOwner(userId)
+          && isValidLoanSuggestion(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(suggestionId) && isVerifiedOwner(userId);
+      }
+
+      // --- EMI Calculations ---
+      match /emiCalculations/{calcId} {
+        allow get: if isValidId(userId) && isValidId(calcId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(calcId)
+          && isVerifiedOwner(userId)
+          && isValidEmiCalculation(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(calcId)
+          && isVerifiedOwner(userId)
+          && isValidEmiCalculation(incoming(), userId)
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['label']);
+        allow delete: if isValidId(userId) && isValidId(calcId) && isVerifiedOwner(userId);
+      }
+
+      // --- AI Chat History ---
+      match /chatMessages/{messageId} {
+        allow get: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(messageId)
+          && isVerifiedOwner(userId)
+          && isValidChatMessage(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(messageId) && isVerifiedOwner(userId);
+      }
+
+      // --- Uploaded Financial Documents Metadata ---
+      match /documents/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.userId == request.auth.uid;
+        allow create: if isValidId(userId)
+          && isValidId(docId)
+          && isVerifiedOwner(userId)
+          && isValidUploadedDocument(incoming(), userId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId)
+          && isValidId(docId)
+          && isVerifiedOwner(userId)
+          && isValidUploadedDocument(incoming(), userId)
+          && existing().uploadStatus == 'uploading'
+          && incoming().uploadStatus == 'ready'
+          && incoming().userId == existing().userId
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['uploadStatus']);
+        allow delete: if isValidId(userId) && isValidId(docId) && isVerifiedOwner(userId);
+
+        match /chunks/{chunkId} {
+          allow get: if isValidId(userId) && isValidId(docId) && isValidId(chunkId) && isOwner(userId);
+          allow list: if isOwner(userId)
+            && resource.data.userId == request.auth.uid
+            && resource.data.documentId == docId;
+          allow create: if isValidId(userId)
+            && isValidId(docId)
+            && isValidId(chunkId)
+            && isVerifiedOwner(userId)
+            && isValidDocumentChunk(incoming(), userId, docId)
+            && incoming().createdAt == request.time
+            && exists(/databases/$(database)/documents/users/$(userId)/documents/$(docId));
+          allow update: if false;
+          allow delete: if isValidId(userId) && isValidId(docId) && isValidId(chunkId) && isVerifiedOwner(userId);
+        }
+      }
+    }
+  }
+}

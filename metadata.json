@@ -1,0 +1,8 @@
+{
+  "name": "CreditPulse",
+  "description": "Personal credit intelligence, loan eligibility diagnostics, 3-month credit roadmap, EMI planning, and AI financial assistant powered by Firebase and Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

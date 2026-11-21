@@ -1,0 +1,575 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "User Account",
+      "description": "Minimal non-PII user account metadata for CreditPulse.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "createdAt", "updatedAt"]
+    },
+    "FinancialProfile": {
+      "title": "Financial Profile",
+      "description": "Private user financial profile and PII used across all six CreditPulse features.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "monthlyIncome": {
+          "type": "number"
+        },
+        "monthlyExpenses": {
+          "type": "number"
+        },
+        "existingEmis": {
+          "type": "number"
+        },
+        "totalCreditLimit": {
+          "type": "number"
+        },
+        "creditCardBalance": {
+          "type": "number"
+        },
+        "creditAgeMonths": {
+          "type": "integer"
+        },
+        "missedPayments12m": {
+          "type": "integer"
+        },
+        "hardInquiries6m": {
+          "type": "integer"
+        },
+        "employmentType": {
+          "type": "string",
+          "enum": ["salaried", "self_employed", "freelancer", "business_owner", "student"],
+          "maxLength": 30
+        },
+        "employmentTenureMonths": {
+          "type": "integer"
+        },
+        "requestedLoanAmount": {
+          "type": "number"
+        },
+        "requestedTenureMonths": {
+          "type": "integer"
+        },
+        "loanPurpose": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "email",
+        "monthlyIncome",
+        "monthlyExpenses",
+        "existingEmis",
+        "totalCreditLimit",
+        "creditCardBalance",
+        "creditAgeMonths",
+        "missedPayments12m",
+        "hardInquiries6m",
+        "employmentType",
+        "employmentTenureMonths",
+        "requestedLoanAmount",
+        "requestedTenureMonths",
+        "loanPurpose",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CreditAssessment": {
+      "title": "Credit Assessment",
+      "description": "Calculated Smart Credit Score assessment and breakdown.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "score": {
+          "type": "integer"
+        },
+        "band": {
+          "type": "string",
+          "enum": ["Poor", "Fair", "Good", "Very Good", "Excellent"],
+          "maxLength": 20
+        },
+        "utilizationRatio": {
+          "type": "number"
+        },
+        "dtiRatio": {
+          "type": "number"
+        },
+        "paymentHistoryScore": {
+          "type": "integer"
+        },
+        "creditMixScore": {
+          "type": "integer"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "score",
+        "band",
+        "utilizationRatio",
+        "dtiRatio",
+        "paymentHistoryScore",
+        "creditMixScore",
+        "summary",
+        "createdAt"
+      ]
+    },
+    "LoanRejectionAnalysis": {
+      "title": "Loan Rejection Analysis",
+      "description": "Seven-point loan eligibility diagnostic and personalised recommendations.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "loanType": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "requestedAmount": {
+          "type": "number"
+        },
+        "requestedTenureMonths": {
+          "type": "integer"
+        },
+        "approvalOdds": {
+          "type": "integer"
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": ["Low Risk", "Moderate Risk", "High Risk"],
+          "maxLength": 30
+        },
+        "passedChecksCount": {
+          "type": "integer"
+        },
+        "scoreUsed": {
+          "type": "integer"
+        },
+        "dtiPercent": {
+          "type": "number"
+        },
+        "utilizationPercent": {
+          "type": "number"
+        },
+        "failedCheckKeys": {
+          "type": "array"
+        },
+        "recommendations": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "loanType",
+        "requestedAmount",
+        "requestedTenureMonths",
+        "approvalOdds",
+        "riskLevel",
+        "passedChecksCount",
+        "scoreUsed",
+        "dtiPercent",
+        "utilizationPercent",
+        "failedCheckKeys",
+        "recommendations",
+        "createdAt"
+      ]
+    },
+    "ImprovementPlan": {
+      "title": "Improvement Plan",
+      "description": "Three-month credit improvement roadmap and checklist progress.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "baselineScore": {
+          "type": "integer"
+        },
+        "targetScore": {
+          "type": "integer"
+        },
+        "completedTaskIds": {
+          "type": "array"
+        },
+        "totalTasks": {
+          "type": "integer"
+        },
+        "progressPercent": {
+          "type": "integer"
+        },
+        "month1Focus": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "month2Focus": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "month3Focus": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "baselineScore",
+        "targetScore",
+        "completedTaskIds",
+        "totalTasks",
+        "progressPercent",
+        "month1Focus",
+        "month2Focus",
+        "month3Focus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LoanSuggestion": {
+      "title": "Loan Suggestion",
+      "description": "Saved personalised alternative loan option and repayment estimate.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "requestedAmount": {
+          "type": "number"
+        },
+        "tenureMonths": {
+          "type": "integer"
+        },
+        "creditScoreUsed": {
+          "type": "integer"
+        },
+        "recommendedCategory": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "estimatedApr": {
+          "type": "number"
+        },
+        "estimatedMonthlyEmi": {
+          "type": "number"
+        },
+        "totalRepayment": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "requestedAmount",
+        "tenureMonths",
+        "creditScoreUsed",
+        "recommendedCategory",
+        "estimatedApr",
+        "estimatedMonthlyEmi",
+        "totalRepayment",
+        "notes",
+        "createdAt"
+      ]
+    },
+    "EmiCalculation": {
+      "title": "EMI Calculation",
+      "description": "Saved EMI calculation record with principal, rate, tenure, and total interest.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "principal": {
+          "type": "number"
+        },
+        "annualInterestRate": {
+          "type": "number"
+        },
+        "tenureMonths": {
+          "type": "integer"
+        },
+        "monthlyEmi": {
+          "type": "number"
+        },
+        "totalInterest": {
+          "type": "number"
+        },
+        "totalPayable": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "label",
+        "principal",
+        "annualInterestRate",
+        "tenureMonths",
+        "monthlyEmi",
+        "totalInterest",
+        "totalPayable",
+        "createdAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "AI Chat Message",
+      "description": "Persisted message from the CreditPulse AI Assistant.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "maxLength": 20
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "contextScore": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "role", "content", "contextScore", "createdAt"]
+    },
+    "UploadedDocument": {
+      "title": "Uploaded Document",
+      "description": "Metadata for financial documents stored in Firebase Storage or Firestore Vault.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 180
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Income Proof", "Bank Statement", "Credit Report", "Loan Offer", "Other"],
+          "maxLength": 40
+        },
+        "sizeBytes": {
+          "type": "integer"
+        },
+        "contentType": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "storagePath": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "downloadUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "storageBackend": {
+          "type": "string",
+          "enum": ["firebase-storage", "firestore-vault"],
+          "maxLength": 30
+        },
+        "chunkCount": {
+          "type": "integer"
+        },
+        "uploadStatus": {
+          "type": "string",
+          "enum": ["uploading", "ready"],
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "fileName",
+        "category",
+        "sizeBytes",
+        "contentType",
+        "storagePath",
+        "downloadUrl",
+        "storageBackend",
+        "chunkCount",
+        "uploadStatus",
+        "createdAt"
+      ]
+    },
+    "DocumentChunk": {
+      "title": "Document Chunk",
+      "description": "Base64-encoded binary chunk of an uploaded financial document stored in Firestore Vault.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "documentId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "chunkIndex": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "string",
+          "maxLength": 560000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "documentId", "chunkIndex", "data", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "User account root document."
+    },
+    "/users/{userId}/private/{profileId}": {
+      "schema": { "$ref": "#/entities/FinancialProfile" },
+      "description": "User private financial profile and PII."
+    },
+    "/users/{userId}/creditAssessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/CreditAssessment" },
+      "description": "User Smart Credit Score assessments."
+    },
+    "/users/{userId}/loanAnalyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/LoanRejectionAnalysis" },
+      "description": "User 7-check loan rejection analyses."
+    },
+    "/users/{userId}/improvementPlans/{planId}": {
+      "schema": { "$ref": "#/entities/ImprovementPlan" },
+      "description": "User 3-month credit improvement roadmaps."
+    },
+    "/users/{userId}/loanSuggestions/{suggestionId}": {
+      "schema": { "$ref": "#/entities/LoanSuggestion" },
+      "description": "User saved alternative loan suggestions."
+    },
+    "/users/{userId}/emiCalculations/{calcId}": {
+      "schema": { "$ref": "#/entities/EmiCalculation" },
+      "description": "User saved EMI calculations."
+    },
+    "/users/{userId}/chatMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "User CreditPulse AI Assistant chat history."
+    },
+    "/users/{userId}/documents/{docId}": {
+      "schema": { "$ref": "#/entities/UploadedDocument" },
+      "description": "User uploaded document metadata."
+    },
+    "/users/{userId}/documents/{docId}/chunks/{chunkId}": {
+      "schema": { "$ref": "#/entities/DocumentChunk" },
+      "description": "User uploaded document binary chunks for Firestore Vault storage."
+    }
+  }
+}

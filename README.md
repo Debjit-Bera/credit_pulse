@@ -372,5 +372,5 @@ Every bit of support, feedback, and contribution helps us improve!
 ---
 
 <p align="center">
-  <b>CreditPulse — Know Your Credit. Improve Your Future.</b>
+  <b>CreditPulse — Know Your Credit. Empower Your Future.</b>
 </p>
